@@ -33,21 +33,34 @@ module.exports.fetchVehicleImage = async function () {
 };
 
 module.exports.fetchVehicleData = async function () {
-  console.log('fetching vehicle data...');
-
-  let req = new Request(`${URL}/${configuration.VIN}/status?offset=-60`);
+  console.log("fetching vehicle data...");
+  const now = new Date();
+  const secondsSinceEpoch = Math.round(now.getTime() / 1000);
+  let req = new Request(
+    `${VEHICLE_URL}?apptimezone=-2&appDateTime=${secondsSinceEpoch}&tireGuardMode=ENABLED`
+  );
   const access_token = await getAPIToken();
-  req.headers = { Authorization: `Bearer ${access_token}` };
+  console.log("access_token: " + access_token);
+  req.headers = {
+    Authorization: `Bearer ${access_token}`,
+    "x-user-agent": `android(v1.07_20200330);bmw;1.5.2(8932)`,
+  };
 
   let resp = await req.loadJSON();
-  console.log('response car data ...' + JSON.stringify(resp)); 
+  const vehicle = resp.find((obj) => {
+    return obj.vin === configuration.VIN;
+  });
+  console.log("response car data ..." + JSON.stringify(vehicle));
+
   return {
-    mileage: parseInt(resp.vehicleStatus.mileage),
-    fuelPercent: parseInt(resp.vehicleStatus.fuelPercent),
-    chargingLevelHv: parseInt(resp.vehicleStatus.chargingLevelHv),
-    remainingRangeFuel: resp.vehicleStatus.remainingRangeFuel,
-    remainingRangeElectric: resp.vehicleStatus.remainingRangeElectric,
-    updated: resp.vehicleStatus.updateTime,
+    mileage: parseInt(vehicle.status.currentMileage.mileage),
+    fuelPercent: parseInt(vehicle.properties.fuelPercentage.value),
+    chargingLevelHv: parseInt(
+      vehicle.properties.chargingState.chargePercentage
+    ),
+    remainingRangeFuel: vehicle.properties.combustionRange.distance.value,
+    remainingRangeElectric: vehicle.properties.electricRange.distance.value,
+    updated: vehicle.status.lastUpdatedAt,
   };
 };
 
