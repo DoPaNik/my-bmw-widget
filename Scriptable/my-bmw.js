@@ -40,14 +40,16 @@ async function createWidget(size) {
     widget.setPadding(0, 0, 0, 0);
     const contentStack = widget.addStack();
     contentStack.layoutHorizontally();
-    contentStack.addImage(car);
+    if(car)
+      contentStack.addImage(car);
   } else if (size == 'medium') {
     widget.setPadding(0, 15, 10, 15);
     const mileage = data.mileage;
 
     const contentStack = widget.addStack();
     contentStack.layoutHorizontally();
-    contentStack.addImage(car);
+    if(car)
+      contentStack.addImage(car);
 
     contentStack.addSpacer();
 

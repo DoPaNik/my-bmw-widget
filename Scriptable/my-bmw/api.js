@@ -1,17 +1,35 @@
 const configuration = importModule('config');
 const utils = importModule('utils');
 
-const URL = `https://customer.bmwgroup.com/webapi/v1/user/vehicles/`;
+const URL = `https://cocoapi.bmwgroup.com/`;
+const VEHICLE_IMAGE_URL = `${URL}eadrax-ics/v3/presentation/vehicles/${configuration.VIN}/images`;
+const VEHICLE_URL = `${URL}eadrax-vcs/v1/vehicles`;
 
 module.exports.fetchVehicleImage = async function () {
-  console.log('fetching vehicle image...');
+  let fm = FileManager.iCloud();
+  let dir = fm.documentsDirectory();
+  let path = fm.joinPath(dir, `${configuration.VIN}.png`);
 
-  let req = new Request(`${URL}/${configuration.VIN}/image?view=FRONTSIDE&width=250`);
-  const access_token = await getAPIToken();
-  req.headers = { Authorization: `Bearer ${access_token}` }; 
-
-  let resp = await req.loadImage();
-  return resp;
+  if (fm.fileExists(path)) {
+    await fm.downloadFileFromiCloud(path);
+    console.log("loading vehicle image from file...");
+    return fm.readImage(path);
+  } else {
+    console.log("fetching vehicle image...");
+    const access_token = await getAPIToken();
+    let req = new Request(VEHICLE_IMAGE_URL);
+    req.headers = {
+      Authorization: `Bearer ${access_token}`,
+      "x-user-agent": "android(v1.07_20200330);bmw;1.5.2(8932)"}
+    let data = await req.loadImage();
+    console.log("data: " + data)
+    if (data) {
+      fm.writeImage(path, data);
+      return data;
+    } else {
+      return undefined;
+    }
+  }
 };
 
 module.exports.fetchVehicleData = async function () {
@@ -58,8 +76,8 @@ async function requestAPIToken() {
 
   const URL = 'https://customer.bmwgroup.com/gcdm/oauth/token';
   const OAuthClientData = {
-    grant_type: 'password',
-    scope: 'authenticate_user vehicle_data remote_services',
+    grant_type: "password",
+    scope: "openid profile email offline_access smacc vehicle_data perseus dlm svds cesim vsapi remote_services fupo authenticate_user",
     username: configuration.USERNAME,
     password: configuration.PASSWORD,
   };
